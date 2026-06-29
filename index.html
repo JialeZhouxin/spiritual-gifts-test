@@ -527,7 +527,7 @@
                   <div class="flex flex-wrap gap-2">
                     <span v-for="(item, idx) in topGifts.slice(0,3)" :key="item.key"
                       class="px-4 py-2 bg-primary-100 text-primary-700 rounded-lg text-sm font-semibold">
-                      {{ '🥇🥈🥉'[idx] }} {{ item.name }}（{{ item.score }}分）
+                      {{ ['🥇','🥈','🥉'][idx] }} {{ item.name }}（{{ item.score }}分）
                     </span>
                   </div>
                 </div>
