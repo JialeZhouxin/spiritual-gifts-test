@@ -41,13 +41,7 @@
 
     .bar-fill { transition: width 1s ease-out; }
 
-    .sidebar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
-    .sidebar::-webkit-scrollbar { width: 4px; }
-    .sidebar::-webkit-scrollbar-track { background: transparent; }
-    .sidebar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
 
-    @media (max-width: 1023px) { .sidebar-desktop { display: none; } }
-    @media (min-width: 1024px) { .sidebar-mobile-btn { display: none; } }
 
     .modal-overlay { background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); }
 
@@ -82,7 +76,7 @@
 
     <!-- ========== JUMP MODAL (mobile) ========== -->
     <transition name="fade">
-      <div v-if="showJumpModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 modal-overlay" @click.self="showJumpModal = false">
+      <div v-if="showJumpModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay" @click.self="showJumpModal = false">
         <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto scale-in" @click.stop>
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-bold text-sky-800">跳转至题目</h3>
@@ -104,35 +98,15 @@
     <!-- ========== MAIN LAYOUT ========== -->
     <div class="flex">
 
-      <!-- ===== SIDEBAR (desktop) ===== -->
-      <aside class="sidebar-desktop fixed right-0 top-0 h-screen w-20 z-40 bg-white/90 backdrop-blur border-l border-slate-100 shadow-sm flex flex-col items-center py-4">
-        <div class="text-xs font-bold text-sky-600 mb-3 tracking-wider">跳转</div>
-        <div class="flex-1 overflow-y-auto px-1 sidebar w-full">
-          <div class="grid grid-cols-3 gap-1 justify-items-center">
-            <template v-for="q in questions" :key="q.id">
-              <div @click="jumpTo(q.id)"
-                class="q-nav-dot"
-                :class="getDotClass(q.id)">
-                {{ q.id }}
-              </div>
-            </template>
-          </div>
-        </div>
-        <div class="mt-2 text-center">
-          <div class="text-xs text-slate-400 font-medium">{{ answeredCount }}/125</div>
-          <div class="w-12 h-1 bg-slate-100 rounded-full mt-1 overflow-hidden mx-auto">
-            <div class="h-full bg-sky-500 rounded-full transition-all" :style="{ width: progressPercent + '%' }"></div>
-          </div>
-        </div>
-      </aside>
-
       <!-- ===== MOBILE FLOAT BUTTON ===== -->
-      <button @click="showJumpModal = true" class="sidebar-mobile-btn fixed right-4 bottom-24 z-40 w-14 h-14 bg-sky-500 text-white rounded-2xl shadow-lg flex items-center justify-center text-xl font-bold hover:bg-sky-600 transition shadow-sky-200">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" /></svg>
+      <button @click="showJumpModal = true" title="跳转题目"
+        class="fixed right-4 bottom-24 z-40 w-14 h-auto pt-2 pb-1.5 bg-sky-500 text-white rounded-2xl shadow-lg flex flex-col items-center justify-center gap-0.5 hover:bg-sky-600 transition shadow-sky-200">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" /></svg>
+        <span class="text-[10px] leading-none font-medium">跳转</span>
       </button>
 
       <!-- ===== MAIN CONTENT ===== -->
-      <main class="flex-1 lg:mr-20">
+      <main class="flex-1">
 
         <!-- ===== HERO ===== -->
         <section class="relative overflow-hidden bg-gradient-to-br from-sky-400 via-sky-500 to-sky-700 text-white px-6 py-16 md:py-24">
