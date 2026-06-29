@@ -127,6 +127,9 @@
 }
 .animate-slide-down { animation: slideDown 0.3s ease-out forwards; }
 .count-up { animation: fadeSlideUp 0.3s ease-out; }
+.card-enter { opacity: 0; transform: translateY(16px); }
+.card-enter-active { transition: all 0.4s ease-out; }
+.card-enter-done { opacity: 1; transform: translateY(0); }
 </style>
 </head>
 <body>
@@ -309,8 +312,10 @@
             <div class="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-neutral-100 transition-all duration-200"
               :class="{ 'ring-2 ring-primary-300 shadow-md': focusedQuestion === q.id }">
               <div class="flex items-start gap-4">
-                <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
-                  :class="answers[q.id] !== undefined ? 'bg-primary-500 text-white' : 'bg-neutral-100 text-neutral-400'">
+                <!-- 颜色条 -->
+                <div class="flex-shrink-0 w-1 self-stretch rounded-full mt-3 mb-3" :class="getCategoryColor(q.id).bar"></div>
+                <div class="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold transition-all duration-300"
+                  :class="answers[q.id] !== undefined ? 'bg-primary-500 text-white shadow-sm shadow-primary-200' : 'bg-neutral-100 text-neutral-400'">
                   {{ q.id }}
                 </div>
                 <div class="flex-1 min-w-0">
@@ -517,6 +522,17 @@
 
   <script>
     // ===================== DATA =====================
+    const CATEGORY_COLORS = [
+      { bar: 'bg-primary-400', bg: 'bg-primary-50', border: 'border-primary-200' },
+      { bar: 'bg-emerald-400', bg: 'bg-emerald-50', border: 'border-emerald-200' },
+      { bar: 'bg-amber-400', bg: 'bg-amber-50', border: 'border-amber-200' },
+      { bar: 'bg-rose-400', bg: 'bg-rose-50', border: 'border-rose-200' },
+      { bar: 'bg-cyan-400', bg: 'bg-cyan-50', border: 'border-cyan-200' },
+    ];
+    function getCategoryColor(id) {
+      return CATEGORY_COLORS[Math.floor((id - 1) / 5) % 5];
+    }
+
     const CATEGORIES = [
       { key: 'A', name: '预言' },
       { key: 'B', name: '牧养' },
@@ -977,6 +993,31 @@
           }
         }
 
+        
+        // Card entrance animation observer
+        function setupCardObserver() {
+          setTimeout(() => {
+            const cards = document.querySelectorAll('[id^="q"] > div');
+            cards.forEach((el, i) => {
+              el.classList.add('card-enter');
+              el.style.transitionDelay = (i * 30) + 'ms';
+            });
+            const observer = new IntersectionObserver((entries) => {
+              entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                  entry.target.classList.remove('card-enter');
+                  entry.target.classList.add('card-enter-done');
+                  observer.unobserve(entry.target);
+                }
+              });
+            }, { threshold: 0.05, rootMargin: '0px 0px -30px 0px' });
+            cards.forEach(el => observer.observe(el));
+          }, 100);
+        }
+        
+        // Call observer after mount
+        setTimeout(setupCardObserver, 200);
+        
         return {
           questions,
           options: OPTIONS,
