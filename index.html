@@ -320,6 +320,50 @@
               </div>
             </div>
 
+            <!-- Gift Definitions -->
+            <div class="bg-white rounded-2xl p-6 md:p-8 shadow-md border border-slate-100 mb-10">
+              <h3 class="text-lg font-bold text-sky-700 mb-2 flex items-center gap-2">
+                <span class="text-2xl">📖</span> 恩赐定义与经文参考
+              </h3>
+              <p class="text-sm text-slate-400 mb-6">点击展开查看每种恩赐的详细定义和圣经出处</p>
+              <div class="space-y-2">
+                <div v-for="g in giftDefinitionsWithScores" :key="g.key"
+                  class="border border-slate-100 rounded-xl overflow-hidden transition-all"
+                  :class="{ 'ring-2 ring-sky-200': g.key === topGifts[0]?.key || g.key === topGifts[1]?.key || g.key === topGifts[2]?.key }">
+                  <button @click="toggleDef(g.key)"
+                    class="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-sky-50/50 transition"
+                    :class="expandedDef === g.key ? 'bg-sky-50' : ''">
+                    <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                      :class="g.score > 0 ? 'bg-sky-500 text-white' : 'bg-slate-100 text-slate-400'">{{ g.key }}</div>
+                    <div class="flex-1 min-w-0">
+                      <span class="text-sm font-semibold text-slate-700">{{ g.name }}</span>
+                      <span v-if="g.score > 0" class="ml-2 text-xs font-medium"
+                        :class="g.score >= 12 ? 'text-sky-600' : g.score >= 8 ? 'text-sky-500' : 'text-slate-400'">
+                        {{ g.score }}分
+                      </span>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                      <div class="flex gap-0.5">
+                        <div v-for="i in 5" :key="i" class="w-1.5 h-1.5 rounded-full"
+                          :class="i <= g.answered ? 'bg-sky-400' : 'bg-slate-200'"></div>
+                      </div>
+                      <span class="text-slate-300 transition-transform duration-200"
+                        :class="expandedDef === g.key ? 'rotate-180' : ''">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                      </span>
+                    </div>
+                  </button>
+                  <div v-show="expandedDef === g.key" class="px-4 pb-4 pt-1 text-sm text-slate-600 leading-relaxed border-t border-slate-50">
+                    <p class="mb-2">{{ g.def }}</p>
+                    <div class="flex items-start gap-2 text-sky-700 bg-sky-50/50 rounded-lg p-3">
+                      <span class="text-base flex-shrink-0">📖</span>
+                      <span class="text-xs leading-relaxed">{{ g.scriptures }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Reflection Questions -->
             <div class="bg-white rounded-2xl p-6 md:p-8 shadow-md border border-sky-100">
               <h3 class="text-lg font-bold text-sky-700 mb-6 flex items-center gap-2">
@@ -409,6 +453,34 @@
       { key: 'W', name: '代祷' },
       { key: 'X', name: '赶鬼' },
       { key: 'Y', name: '执事' }
+    ];
+
+    const GIFT_DEFINITIONS = [
+      { key: 'A', name: '预言', def: '预言的恩赐就是神给与基督身体中部分会友的特别能力，使他们透过从神而来的声音，接受和传达神直接给他的子民的信息。', scriptures: '林前12:10,28；弗4:11-14；罗12:6；路7:26；徒15:32；徒21:9-11' },
+      { key: 'B', name: '牧养', def: '牧养的恩赐就是神给予基督身体中部份会友的特别能力，使他们为了一群信徒的属灵利益，负起长期的个人责任。', scriptures: '弗4:11-14；提前3:1-7；约10:1-18；彼前5:1-3' },
+      { key: 'C', name: '教导', def: '教导的恩赐就是神给予基督身体中部份会友特别的能力，使他们为了身体及其会友的健康和事工，传达适当的知识，使其他人能够学习。', scriptures: '林前12:28；弗4:11-14；罗12:7；徒18:24-28；徒20:20-21' },
+      { key: 'D', name: '智慧', def: '智慧的恩赐就是神给予基督身体中部分会友的特别能力，使他们知道圣灵的心意，获得亮光，把知识最适当地用在基督身体特殊的需要上。', scriptures: '林前2:1-13；林前12:8；徒6:3,10；雅1:5-6；彼后3:15-16' },
+      { key: 'E', name: '知识', def: '知识的恩赐就是神给予基督身体中部份会友的特别能力，使他们能发现、积聚、分析、和澄清与身体增长和幸福有关的资料和观念。', scriptures: '林前2:14；林前12:8；徒5:1-11；西2:2-3；林后11:6' },
+      { key: 'F', name: '劝化', def: '劝化的恩赐就是神给予基督身体中部份会友的特别能力，使他们用使人舒畅、安慰、鼓励和辅导的话去关怀身体中其他的会友，让这些会友得到帮助和医治。', scriptures: '罗12:8；提前4:13；来10:25；徒14:22' },
+      { key: 'G', name: '辨别诸灵', def: '辨别诸灵的恩赐就是神给予基督身体中部分会友的特别能力，使他们可以确实地知道，那些被怀疑是由神而来的行为，到底是属灵的、属人的，抑属撒但的。', scriptures: '徒16:16-18；约壹4:1-6；太16:21-23' },
+      { key: 'H', name: '施惠（奉献）', def: '施惠（奉献）的恩赐就是神给予基督身体中部份会友的特别能力，使他们用慷慨和喜乐的态度，把自己物质资源奉献给神的事工。', scriptures: '罗12:8；林后8:1-7；林后9:2-8；可12:41-44' },
+      { key: 'I', name: '帮助人', def: '帮助人的恩赐是神给予基督身体中部份会友的特别能力，使他们把才干投资于身体中其他会友的生命和事奉，让这些被帮助的人更有效地运用他们的属灵恩赐。', scriptures: '林前12:28；罗16:1-2；徒9:36；路8:2-3；可15:40-41' },
+      { key: 'J', name: '怜悯人', def: '怜悯人的恩赐就是神给予基督身体中部份会友的特别能力，使他们对忍受生理、心理或情绪痛苦的基督徒或非基督徒，感同身受和表示同情；而且把这些同情变成使人愉快的行为，籍以表达出基督的爱，和减轻别人的痛苦。', scriptures: '罗12:8；可9:41；徒16:33-34；路10:33-35；太20:29-34；太25:34-40；徒11:28-30' },
+      { key: 'K', name: '宣教', def: '宣教士的恩赐就是神给予基督身体中部份会友的特别能力，使他们在第二种文化中，运用他们其他的属灵恩赐去事奉。', scriptures: '林前9:19-23；徒8:4；徒13:2-3；徒22:21；罗10:15' },
+      { key: 'L', name: '传福音', def: '传福音的恩赐就是神给予基督身体中部份会友的特别能力，使他们能够适当地与非信徒分享福音，带领男女成为耶稣门徒，和成为基督身体中有责任感的会友。', scriptures: '弗4:11-14；提后4:5；徒8:5-6；徒8:26-40；徒14:21；徒21:8' },
+      { key: 'M', name: '款待', def: '款待的恩赐就是神给予基督身体中部份会友的特别能力，使他们开放家庭，并对那些需要食物和住宿的人表示欢迎。', scriptures: '彼前4:9；罗12:9-13；罗16:23；徒16:14-15；来13:1-2' },
+      { key: 'N', name: '信心', def: '信心的恩赐就是神给予基督身体中部份会友的特别能力，使他们能以格外的自信去分辨出神的旨意和目的，以完成他那等待完成的事工。', scriptures: '林前12:9；徒11:22-24；徒27:21-25；来11章；罗4:18-21' },
+      { key: 'O', name: '治理', def: '治理（领袖）的恩赐就是神给予基督身体中部份会友的特别能力，使他们按着神对将来的目的，定出目标，并将这些目标向别人传达，务求那些人能自愿的、与和谐的，为了神的荣耀，共同完成这些目标。', scriptures: '提前5:17；徒7:10；徒15:7-11；罗12:8；来13:17；路9:51' },
+      { key: 'P', name: '行政', def: '行政的恩赐就是神给予基督身体中部份会友的特别能力，使他们可以成为人类媒介，让神透过他们成就大有能力的事迹，对观察者而言，那根本就是改变了自然界的正常程序。', scriptures: '林前12:10,28；徒9:36-42；徒19:11-20；徒20:7-12；罗15:18-19；林后12:12' },
+      { key: 'Q', name: '神迹', def: '异能（神迹）的恩赐就是神给予基督身体中部份会友的特别能力，使他们可以成为人类媒介，让神透过他们成就大有能力的事迹，对观察者而言，那根本就是改变了自然界的正常程序。', scriptures: '林前12:10,28；徒9:36-42；徒19:11-20；徒20:7-12；罗15:18-19；林后12:12' },
+      { key: 'R', name: '医病', def: '医病的恩赐就是神给予基督身体中部份会友的特别能力，使他们可以成为人类媒介，让神透过他们，无须自然的方法，却医治疾病和恢复健康。', scriptures: '林前12:9,28；徒3:1-10；徒5:12-16；徒9:32-35；徒28:7-10' },
+      { key: 'S', name: '方言', def: '方言的恩赐就是给予基督身体中部份会友的特别能力，使他们（甲）以从未学过的语言向神说话，和/或（乙）透过他们从未学过的语言，接受从神而来的信息，并将之即时传达给神的子民。', scriptures: '林前12:10,28；14:13-19；徒2:1-13；徒10:44-46；徒19:1-7；可16:17' },
+      { key: 'T', name: '翻方言', def: '翻方言的恩赐就是给予基督身体中部份会友的特别能力，使他们把用方言传讲的信息翻成土话。', scriptures: '林前12:10,30；林前14:13；林前14:26-28' },
+      { key: 'U', name: '自愿清贫', def: '自愿清贫的恩赐就是神给予教会身体中部分会友的特别能力，使他们放弃物质的舒适和奢侈，选择一个在某一社会中相等于穷人程度的生活形式，使他更有效地去事奉神。', scriptures: '林前11:1-3；徒2:44-45；徒4:34-37；林后6:10；林后8:9' },
+      { key: 'V', name: '独身', def: '独身的恩赐就是神给予基督身体中部份会友的特别能力，使他们维持单身却感到享受，没有结婚却不因性的不正当引诱而受苦。', scriptures: '林前7:7-8；太19:10-12' },
+      { key: 'W', name: '代祷', def: '代祷的恩赐就是神给予基督身体中部份会友的特别能力，使他们比起平常的基督徒，可以更经常而长时间祷告，而且在他们祷告中看见频密而特殊的应验。', scriptures: '雅5:14-16；提前2:1-2；西1:9-12；西4:12-13；徒12:12；路22:41-44' },
+      { key: 'X', name: '赶鬼', def: '赶鬼的恩赐就是神给予基督身体中部份会友的特别能力，使他们能赶走恶魔或邪灵。', scriptures: '太12:22-32；路10:12-20；徒8:5-8；徒16:16-18' },
+      { key: 'Y', name: '执事', def: '执事的恩赐就是神给予基督身体中部份会友的特别能力，使他们在神的事工中找出还未满足的需要，使用可提供的资源，使这些需要得到满足，并帮助达成目标。', scriptures: '提后1:16-18；罗12:7；徒6:1-7；多3:14；加6:2,10' }
     ];
 
     const QUESTION_TEXTS = [
@@ -565,6 +637,7 @@
         const showRestoreDialog = ref(false);
         const showJumpModal = ref(false);
         const showScorePreview = ref(false);
+        const expandedDef = ref(null);
         const focusedQuestion = ref(null);
         const reflection1 = ref('');
         const reflection2 = ref('');
@@ -632,6 +705,10 @@
           }
         }
 
+        function toggleDef(key) {
+          expandedDef.value = expandedDef.value === key ? null : key;
+        }
+
         function getAnsweredInCategory(catKey) {
           let count = 0;
           for (let i = 0; i < 5; i++) {
@@ -682,6 +759,13 @@
           return [...sortedGifts.value]
             .sort((a, b) => b.score - a.score)
             .map((item, index) => ({ ...item, rank: index + 1 }));
+        });
+
+        const giftDefinitionsWithScores = computed(() => {
+          return GIFT_DEFINITIONS.map(def => {
+            const scoreData = sortedGifts.value.find(s => s.key === def.key);
+            return { ...def, score: scoreData?.score || 0, answered: scoreData?.answered || 0 };
+          });
         });
 
         // Watch for all answered to render chart
@@ -803,6 +887,9 @@
           topGifts,
           liveScores,
           getAnsweredInCategory,
+          expandedDef,
+          giftDefinitionsWithScores,
+          toggleDef,
           restoreAnswers,
           clearAndStart,
           setAnswer,
