@@ -589,7 +589,7 @@
     function getCategoryColor(id) {
       return CATEGORY_COLORS[Math.floor((id - 1) / 5) % 5];
     }
-
+    
     const CATEGORIES = [
       { key: 'A', name: '预言' },
       { key: 'B', name: '牧养' },
@@ -1143,6 +1143,7 @@
           topGifts,
           liveScores,
           getAnsweredInCategory,
+          getCategoryColor,
           expandedDef,
           giftDefinitionsWithScores,
           toggleDef,
