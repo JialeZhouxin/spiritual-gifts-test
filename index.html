@@ -125,6 +125,8 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
+.animate-slide-down { animation: slideDown 0.3s ease-out forwards; }
+.count-up { animation: fadeSlideUp 0.3s ease-out; }
 </style>
 </head>
 <body>
@@ -267,11 +269,11 @@
 
         <!-- ===== PROGRESS BAR ===== -->
         <div class="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-neutral-100 shadow-sm">
-          <div class="max-w-3xl mx-auto px-6 py-3">
+          <div class="max-w-3xl mx-auto px-6 py-3 relative">
             <div class="flex items-center justify-between text-sm">
               <span class="text-neutral-500 font-medium">完成进度</span>
               <div class="flex items-center gap-2">
-                <span class="text-primary-600 font-bold">{{ answeredCount }} / 125</span>
+                <span class="text-primary-600 font-bold count-up" :key="answeredCount">{{ answeredCount }} / 125</span>
                 <button @click="showScorePreview = true" class="text-xs px-3 py-1.5 rounded-lg bg-primary-50 text-primary-600 hover:bg-primary-100 hover:text-primary-700 transition-all font-medium">
                   📊 得分
                 </button>
@@ -282,6 +284,21 @@
             </div>
             <div class="w-full h-2.5 bg-neutral-100 rounded-full mt-1.5 overflow-hidden">
               <div class="h-full bg-gradient-to-r from-primary-400 to-primary-500 rounded-full transition-all duration-500" :style="{ width: progressPercent + '%' }"></div>
+            </div>
+            <!-- 分段指示器 -->
+            <div class="flex items-center gap-1 mt-1.5">
+              <template v-for="seg in 5" :key="seg">
+                <div class="flex-1 h-1 rounded-full transition-all duration-300"
+                  :class="answeredCount >= seg * 25 ? 'bg-primary-400' : answeredCount >= (seg-1) * 25 ? 'bg-primary-200' : 'bg-neutral-200'">
+                </div>
+              </template>
+            <!-- 里程碑提示 -->
+            <transition name="fade">
+              <div v-if="showMilestone"
+                class="absolute -bottom-12 left-1/2 -translate-x-1/2 bg-white rounded-xl px-5 py-2.5 shadow-lg border border-primary-100 text-sm font-semibold text-primary-700 whitespace-nowrap z-50 animate-slide-down">
+                {{ milestoneText }}
+              </div>
+            </transition>
             </div>
           </div>
         </div>
@@ -710,6 +727,9 @@
         const showRestoreDialog = ref(false);
         const showJumpModal = ref(false);
         const showScorePreview = ref(false);
+        const milestoneShown = ref({ 25: false, 50: false, 75: false, 100: false });
+        const showMilestone = ref(false);
+        const milestoneText = ref('');
         const expandedDef = ref(null);
         const focusedQuestion = ref(null);
         const reflection1 = ref('');
@@ -860,6 +880,20 @@
         }, { deep: true });
 
         // Watch reflections for save
+        // Watch for milestone achievements
+        watch(answeredCount, (val, old) => {
+          const milestones = [25, 50, 75, 100];
+          for (const m of milestones) {
+            if (val >= m && !milestoneShown.value[m] && old < m) {
+              milestoneShown.value[m] = true;
+              milestoneText.value = '🎉 已完成 ' + m + ' 题！';
+              showMilestone.value = true;
+              setTimeout(() => { showMilestone.value = false; }, 2500);
+              break;
+            }
+          }
+        });
+
         watch([reflection1, reflection2, reflection3, reflection4], () => {
           localStorage.setItem(REFLECTION_KEY, JSON.stringify({
             r1: reflection1.value,
@@ -950,6 +984,8 @@
           showRestoreDialog,
           showJumpModal,
           showScorePreview,
+          showMilestone,
+          milestoneText,
           focusedQuestion,
           reflection1, reflection2, reflection3, reflection4,
           savedCount,
