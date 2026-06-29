@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>你的属灵恩赐测试表</title>
+  <script src="https://cdn.tailwindcss.com">
+  </script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { 50: '#f0f9ff', 100: '#e0f2fe', 200: '#bae6fd', 300: '#7dd3fc', 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 800: '#075985', 900: '#0c4a6e' },
+            accent: { 50: '#f8fafc', 100: '#f1f5f9', 200: '#e2e8f0', 300: '#cbd5e1', 400: '#94a3b8', 500: '#64748b', 600: '#475569', 700: '#334155', 800: '#1e293b', 900: '#0f172a' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif; background: #f8fafc; color: #1e293b; }
+
+    .option-btn { transition: all 0.2s ease; cursor: pointer; user-select: none; }
+    .option-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2); }
+    .option-btn.selected { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(14, 165, 233, 0.3); }
+
+    .q-nav-dot { width: 20px; height: 20px; border-radius: 4px; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; }
+    .q-nav-dot:hover { transform: scale(1.2); }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in-up { animation: fadeInUp 0.5s ease forwards; }
+
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    .slide-down { animation: slideDown 0.3s ease forwards; }
+
+    @keyframes scaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+    .scale-in { animation: scaleIn 0.3s ease forwards; }
+
+    .bar-fill { transition: width 1s ease-out; }
+
+    .sidebar { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-track { background: transparent; }
+    .sidebar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
+
+    @media (max-width: 1023px) { .sidebar-desktop { display: none; } }
+    @media (min-width: 1024px) { .sidebar-mobile-btn { display: none; } }
+
+    .modal-overlay { background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); }
+
+    .result-card { transition: all 0.3s ease; }
+    .result-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(14, 165, 233, 0.15); }
+
+    .category-label { font-size: 11px; fill: #64748b; }
+
+    .chart-wrapper { position: relative; width: 100%; max-width: 500px; margin: 0 auto; }
+  </style>
+</head>
+<body>
+
+  <div id="app">
+
+    <!-- ========== RESTORE DIALOG ========== -->
+    <transition name="fade">
+      <div v-if="showRestoreDialog" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay" @click.self="showRestoreDialog = false">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full scale-in">
+          <div class="text-center">
+            <div class="text-4xl mb-4">📋</div>
+            <h2 class="text-xl font-bold text-sky-800 mb-2">检测到上次作答记录</h2>
+            <p class="text-slate-500 mb-6">你之前已经完成了 <strong class="text-sky-600">{{ savedCount }}</strong> 道题，是否继续上次的作答？</p>
+            <div class="flex gap-3 justify-center">
+              <button @click="restoreAnswers" class="px-6 py-3 bg-sky-500 text-white rounded-xl font-semibold hover:bg-sky-600 transition">继续作答</button>
+              <button @click="clearAndStart" class="px-6 py-3 bg-slate-100 text-slate-600 rounded-xl font-semibold hover:bg-slate-200 transition">重新开始</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- ========== JUMP MODAL (mobile) ========== -->
+    <transition name="fade">
+      <div v-if="showJumpModal" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 modal-overlay" @click.self="showJumpModal = false">
+        <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto scale-in" @click.stop>
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-sky-800">跳转至题目</h3>
+            <button @click="showJumpModal = false" class="text-slate-400 hover:text-slate-600 text-2xl">&times;</button>
+          </div>
+          <div class="grid grid-cols-10 gap-1.5">
+            <template v-for="q in questions" :key="q.id">
+              <div @click="jumpTo(q.id); showJumpModal = false"
+                class="q-nav-dot w-full aspect-square text-xs"
+                :class="answers[q.id] !== undefined ? 'bg-sky-500 text-white' : 'bg-slate-100 text-slate-400 hover:bg-slate-200'">
+                {{ q.id }}
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </transition>
+
+    <!-- ========== MAIN LAYOUT ========== -->
+    <div class="flex">
+
+      <!-- ===== SIDEBAR (desktop) ===== -->
+      <aside class="sidebar-desktop fixed right-0 top-0 h-screen w-20 z-40 bg-white/90 backdrop-blur border-l border-slate-100 shadow-sm flex flex-col items-center py-4">
+        <div class="text-xs font-bold text-sky-600 mb-3 tracking-wider">跳转</div>
+        <div class="flex-1 overflow-y-auto px-1 sidebar w-full">
+          <div class="grid grid-cols-3 gap-1 justify-items-center">
+            <template v-for="q in questions" :key="q.id">
+              <div @click="jumpTo(q.id)"
+                class="q-nav-dot"
+                :class="getDotClass(q.id)">
+                {{ q.id }}
+              </div>
+            </template>
+          </div>
+        </div>
+        <div class="mt-2 text-center">
+          <div class="text-xs text-slate-400 font-medium">{{ answeredCount }}/125</div>
+          <div class="w-12 h-1 bg-slate-100 rounded-full mt-1 overflow-hidden mx-auto">
+            <div class="h-full bg-sky-500 rounded-full transition-all" :style="{ width: progressPercent + '%' }"></div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ===== MOBILE FLOAT BUTTON ===== -->
+      <button @click="showJumpModal = true" class="sidebar-mobile-btn fixed right-4 bottom-24 z-40 w-14 h-14 bg-sky-500 text-white rounded-2xl shadow-lg flex items-center justify-center text-xl font-bold hover:bg-sky-600 transition shadow-sky-200">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" /></svg>
+      </button>
+
+      <!-- ===== MAIN CONTENT ===== -->
+      <main class="flex-1 lg:mr-20">
+
+        <!-- ===== HERO ===== -->
+        <section class="relative overflow-hidden bg-gradient-to-br from-sky-400 via-sky-500 to-sky-700 text-white px-6 py-16 md:py-24">
+          <div class="absolute inset-0 opacity-10">
+            <svg class="w-full h-full" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="50" cy="50" r="40" fill="white" />
+              <circle cx="350" cy="100" r="60" fill="white" />
+              <circle cx="100" cy="350" r="30" fill="white" />
+              <circle cx="300" cy="300" r="50" fill="white" />
+              <circle cx="200" cy="200" r="20" fill="white" />
+            </svg>
+          </div>
+          <div class="relative max-w-3xl mx-auto text-center">
+            <div class="text-5xl mb-6">✨</div>
+            <h1 class="text-3xl md:text-5xl font-bold mb-4 tracking-tight">你的属灵恩赐测试表</h1>
+            <p class="text-lg md:text-xl text-sky-100 max-w-2xl mx-auto leading-relaxed">
+              完成125道题目，发现神赐给你的属灵恩赐。每道题根据你的真实经历，
+              选择「许多」「有些」「少少」「没有」之一。
+            </p>
+            <div class="mt-8 flex flex-wrap gap-3 justify-center text-sm text-sky-100">
+              <span class="px-3 py-1 bg-white/10 rounded-full">📝 125 道题</span>
+              <span class="px-3 py-1 bg-white/10 rounded-full">🎯 25 类恩赐</span>
+              <span class="px-3 py-1 bg-white/10 rounded-full">⏱ 约 15-20 分钟</span>
+              <span class="px-3 py-1 bg-white/10 rounded-full">💾 自动保存进度</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== PROGRESS BAR ===== -->
+        <div class="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-slate-100 shadow-sm">
+          <div class="max-w-3xl mx-auto px-6 py-3">
+            <div class="flex items-center justify-between text-sm">
+              <span class="text-slate-500 font-medium">完成进度</span>
+              <div class="flex items-center gap-3">
+                <span class="text-sky-600 font-bold">{{ answeredCount }} / 125</span>
+                <button @click="resetAll" class="text-xs px-3 py-1.5 rounded-lg bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-500 hover:ring-1 hover:ring-red-200 transition-all font-medium">
+                  ↺ 重置
+                </button>
+              </div>
+            </div>
+            <div class="w-full h-2.5 bg-slate-100 rounded-full mt-1.5 overflow-hidden">
+              <div class="h-full bg-gradient-to-r from-sky-400 to-sky-500 rounded-full transition-all duration-500" :style="{ width: progressPercent + '%' }"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== QUESTIONS ===== -->
+        <section class="max-w-3xl mx-auto px-6 py-8">
+          <div v-for="(q, index) in questions" :key="q.id" :id="'q' + q.id" class="mb-4">
+            <div class="bg-white rounded-2xl p-5 md:p-6 shadow-sm border border-slate-100 transition-all duration-200"
+              :class="{ 'ring-2 ring-sky-300 shadow-md': focusedQuestion === q.id }">
+              <div class="flex items-start gap-4">
+                <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold"
+                  :class="answers[q.id] !== undefined ? 'bg-sky-500 text-white' : 'bg-slate-100 text-slate-400'">
+                  {{ q.id }}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-base md:text-lg leading-relaxed text-slate-700 font-medium">{{ q.text }}</p>
+                  <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
+                    <template v-for="opt in options" :key="opt.value">
+                      <button @click="setAnswer(q.id, opt.value)"
+                        class="option-btn px-4 py-3 rounded-xl text-sm font-medium border-2 text-center transition-all"
+                        :class="answers[q.id] === opt.value
+                          ? 'border-sky-500 bg-sky-50 text-sky-700 selected'
+                          : 'border-slate-200 bg-white text-slate-500 hover:border-sky-200 hover:bg-sky-50/50'">
+                        <span class="block text-xs text-slate-400 mb-0.5">{{ opt.label }}</span>
+                        <span class="block text-lg font-bold" :class="answers[q.id] === opt.value ? 'text-sky-600' : 'text-slate-300'">{{ opt.value }}</span>
+                      </button>
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== RESULTS SECTION ===== -->
+        <section v-if="allAnswered" id="results" class="bg-gradient-to-b from-white to-sky-50/50 border-t border-sky-100">
+          <div class="max-w-3xl mx-auto px-6 py-16">
+            <div class="text-center mb-12">
+              <div class="text-4xl mb-4">🎉</div>
+              <h2 class="text-3xl md:text-4xl font-bold text-sky-800 mb-2">你的测试结果</h2>
+              <p class="text-slate-500">以下是根据你的作答计算出的属灵恩赐分析</p>
+            </div>
+
+            <!-- Top 3 Primary -->
+            <div class="mb-10">
+              <h3 class="text-lg font-bold text-sky-700 mb-4 flex items-center gap-2">
+                <span class="text-2xl">🏆</span> 主要恩赐（前三）
+              </h3>
+              <div class="grid md:grid-cols-3 gap-4">
+                <template v-for="(item, idx) in topGifts.slice(0,3)" :key="item.key">
+                  <div class="result-card bg-white rounded-2xl p-6 shadow-md border border-sky-100 text-center">
+                    <div class="text-3xl mb-2">{{ ['🥇','🥈','🥉'][idx] }}</div>
+                    <div class="text-xl font-bold text-sky-700 mb-1">{{ item.name }}</div>
+                    <div class="text-3xl font-black text-sky-500 mb-2">{{ item.score }}<span class="text-lg text-slate-400">/15</span></div>
+                    <div class="w-full h-3 bg-sky-50 rounded-full overflow-hidden">
+                      <div class="h-full bg-gradient-to-r from-sky-400 to-sky-500 rounded-full bar-fill" :style="{ width: (item.score/15*100) + '%' }"></div>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <!-- Next 3 Secondary -->
+            <div class="mb-10">
+              <h3 class="text-lg font-bold text-sky-700 mb-4 flex items-center gap-2">
+                <span class="text-2xl">🎗️</span> 次要恩赐（第四至六）
+              </h3>
+              <div class="grid md:grid-cols-3 gap-4">
+                <template v-for="(item, idx) in topGifts.slice(3,6)" :key="item.key">
+                  <div class="result-card bg-white rounded-2xl p-5 shadow-sm border border-slate-100 text-center">
+                    <div class="text-lg font-bold text-slate-600 mb-1">{{ item.name }}</div>
+                    <div class="text-2xl font-black text-sky-500 mb-2">{{ item.score }}<span class="text-base text-slate-400">/15</span></div>
+                    <div class="w-full h-2.5 bg-sky-50 rounded-full overflow-hidden">
+                      <div class="h-full bg-gradient-to-r from-sky-300 to-sky-400 rounded-full bar-fill" :style="{ width: (item.score/15*100) + '%' }"></div>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <!-- All Categories Bar Chart -->
+            <div class="bg-white rounded-2xl p-6 shadow-md border border-slate-100 mb-10">
+              <h3 class="text-lg font-bold text-sky-700 mb-6 flex items-center gap-2">
+                <span class="text-2xl">📊</span> 全部恩赐得分一览
+              </h3>
+              <div class="space-y-3">
+                <div v-for="item in sortedGifts" :key="item.key" class="flex items-center gap-3">
+                  <div class="w-16 text-right text-sm font-medium text-slate-500 flex-shrink-0">{{ item.key }}</div>
+                  <div class="w-20 text-sm text-slate-700 flex-shrink-0 truncate" :title="item.name">{{ item.name }}</div>
+                  <div class="flex-1 h-6 bg-sky-50 rounded-full overflow-hidden relative">
+                    <div class="h-full rounded-full bar-fill flex items-center justify-end px-2 text-xs font-bold text-white"
+                      :class="item.score >= 12 ? 'bg-gradient-to-r from-sky-400 to-sky-500' : item.score >= 8 ? 'bg-gradient-to-r from-sky-300 to-sky-400' : 'bg-gradient-to-r from-sky-200 to-sky-300'"
+                      :style="{ width: Math.max(item.score/15*100, 8) + '%' }">
+                      <span v-if="item.score >= 3">{{ item.score }}</span>
+                    </div>
+                  </div>
+                  <div class="w-8 text-right text-sm font-bold text-slate-400 flex-shrink-0">{{ item.score }}</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Radar Chart -->
+            <div class="bg-white rounded-2xl p-6 shadow-md border border-slate-100 mb-10">
+              <h3 class="text-lg font-bold text-sky-700 mb-6 flex items-center gap-2">
+                <span class="text-2xl">🕸️</span> 恩赐雷达图
+              </h3>
+              <div class="chart-wrapper">
+                <canvas id="radarChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Reflection Questions -->
+            <div class="bg-white rounded-2xl p-6 md:p-8 shadow-md border border-sky-100">
+              <h3 class="text-lg font-bold text-sky-700 mb-6 flex items-center gap-2">
+                <span class="text-2xl">💭</span> 恩赐与事奉反思
+              </h3>
+              <div class="space-y-6">
+                <div>
+                  <label class="block text-sm font-semibold text-slate-600 mb-2">你的主要恩赐：</label>
+                  <div class="flex flex-wrap gap-2">
+                    <span v-for="(item, idx) in topGifts.slice(0,3)" :key="item.key"
+                      class="px-4 py-2 bg-sky-100 text-sky-700 rounded-lg text-sm font-semibold">
+                      {{ '🥇🥈🥉'[idx] }} {{ item.name }}（{{ item.score }}分）
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-slate-600 mb-2">你的次要恩赐：</label>
+                  <div class="flex flex-wrap gap-2">
+                    <span v-for="item in topGifts.slice(3,6)" :key="item.key"
+                      class="px-4 py-2 bg-sky-50 text-sky-600 rounded-lg text-sm font-medium">
+                      {{ item.name }}（{{ item.score }}分）
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-slate-600 mb-2">在基督身体内，你目前担任（正式及非正式）什么事奉？</label>
+                  <textarea v-model="reflection1" rows="3" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none transition resize-none text-sm"></textarea>
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-slate-600 mb-2">哪项事奉非你恩赐所长？神可能呼召你考虑变换。</label>
+                  <textarea v-model="reflection2" rows="3" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none transition resize-none text-sm"></textarea>
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-slate-600 mb-2">在职业方面，你是专职事奉者，还是带职事奉信徒？</label>
+                  <textarea v-model="reflection3" rows="2" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none transition resize-none text-sm"></textarea>
+                </div>
+                <div>
+                  <label class="block text-sm font-semibold text-slate-600 mb-2">考虑了你的恩赐组合和职业，你觉得最合宜的事奉模式是什么？按神给你特殊的恩赐，在基督身体内，最合宜的角色是什么？</label>
+                  <textarea v-model="reflection4" rows="3" class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none transition resize-none text-sm"></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== FOOTER ===== -->
+        <footer class="bg-slate-50 border-t border-slate-100 py-8 text-center text-sm text-slate-400">
+          <p>你的属灵恩赐测试表 &mdash; 免费开源工具</p>
+          <p class="mt-1">所有数据仅保存在你的浏览器本地</p>
+        </footer>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ===== CDN SCRIPTS ===== -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js">
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js">
+  </script>
+
+  <script>
+    // ===================== DATA =====================
+    const CATEGORIES = [
+      { key: 'A', name: '预言' },
+      { key: 'B', name: '牧养' },
+      { key: 'C', name: '教导' },
+      { key: 'D', name: '智慧' },
+      { key: 'E', name: '知识' },
+      { key: 'F', name: '劝化' },
+      { key: 'G', name: '辨别诸灵' },
+      { key: 'H', name: '施惠（奉献）' },
+      { key: 'I', name: '帮助人' },
+      { key: 'J', name: '怜悯人' },
+      { key: 'K', name: '宣教' },
+      { key: 'L', name: '传福音' },
+      { key: 'M', name: '款待' },
+      { key: 'N', name: '信心' },
+      { key: 'O', name: '治理' },
+      { key: 'P', name: '行政' },
+      { key: 'Q', name: '神迹' },
+      { key: 'R', name: '医病' },
+      { key: 'S', name: '方言' },
+      { key: 'T', name: '翻方言' },
+      { key: 'U', name: '自愿清贫' },
+      { key: 'V', name: '独身' },
+      { key: 'W', name: '代祷' },
+      { key: 'X', name: '赶鬼' },
+      { key: 'Y', name: '执事' }
+    ];
+
+    const QUESTION_TEXTS = [
+      "我一直有个愿望，要传讲直接从神来的讯息，来建立鼓励和安慰别人。",
+      "我一直喜欢同一班人长期相处，与他们分享成功，分担失败。",
+      "人家告诉我，说我帮助他们很有意义地学习了《圣经》真理。",
+      "在我自己生命中，我有效地应用了属灵真理。",
+      "人家告诉我，说我帮助他们分析了《圣经》中很重要的事实。",
+      "我常说话鼓励那些动摇、受苦和失望的人。",
+      "教会的人发现我常常在别人还没注意的时候，就看穿虚伪。",
+      "我发觉我善于理财，所以能慷慨奉献支持神的工作。",
+      "我经常协助属灵领袖，以致他们能专注做最重要的事工。",
+      "我有一个愿望，要帮助那些身体或思觉有障碍的，来减轻他们的痛苦。",
+      "与别的种族或少数民族人相处，我觉得自在；他们也好像接纳我。",
+      "我有带领人相信耶稣，决志接受救恩。",
+      "我家的大门，一直为有需要留宿的人打开的。",
+      "在一群人当中，别人常是要我来决定异象和方向。",
+      "我讲话的时候，大家好像都听从。",
+      "在一群人当中，若果少了组织，我往往就填补这空缺。",
+      "人家能清楚指明，我的祷告，带出可以看到的神迹。",
+      "奉主耶稣的名，我被使用来即时医治疾病。",
+      "我讲方言。",
+      "有时候人家讲方言，我能感受到神要传达什么。",
+      "我可以生活得更舒适，但我选择与贫穷的人一同生活。",
+      "我是单身，而且很满足。",
+      "我每天起码祷告一小时。",
+      "我斥责邪灵，它们顺服我。",
+      "我喜欢教会叫我去做一些庶务。",
+      "籍着神，我向别人启示了将来要发生的事。",
+      "我乐意负起照料一群基督徒的属灵生命。",
+      "我觉得我能将《新约》对基督身体（教会）的健康和事奉，解释得适切。",
+      "对相当复杂的困难，我能天性地达至解决。",
+      "我对一些属灵真理有特别见解，别人说我帮到他们更亲近神。",
+      "有需要的时候，我能高效地动员别人参与事奉。",
+      "有时我能「看见」圣灵降临在某些人身上。",
+      "按照记录，我奉献大大超过十分之一来支持圣工。",
+      "别人告诉我，说我帮助了他们的事奉，更为高效。",
+      "别人有物质或身体上的缺乏，我肯去照料。",
+      "我觉得我能学会另一种语言，以致能在不同的文化当中服事。",
+      "我曾喜洋洋地向非信徒，适切清楚分享神怎样拯救我。",
+      "我喜欢负责教会聚餐及其他社交。",
+      "我相信神能行不可能之事，并且实实际际地看过他的作为。",
+      "其他基督徒跟从我的领导，因为他们相信我。",
+      "我享受整理细则，组织计划，安排人力、物力、时间，来叫事奉更有效。",
+      "神使用我这个人行出超然的神迹奇事。",
+      "我喜欢为病人祷告，因为我知道许多会得着医治。",
+      "我用曾学过的语言，向神的子民传达神对现况的讯息。",
+      "我翻方言，结果是基督的身体得着建立、激励和安慰。",
+      "简朴生活对我来说是一个很兴奋的挑战。",
+      "人家注意到我对结婚好像没有什么大兴趣。",
+      "当我听到一个代祷事项，我至少会用几日时间为这件事祷告。",
+      "我听过污鬼大声说话。",
+      "我没有什么才干，但教会的事务需要作我就作。",
+      "人家告诉我，说我传达的讯息全时又紧急，必定是直接从神而来。",
+      "在一群信徒当中，我不怕提供指导和方向。",
+      "我可以花许多时间来学习新的《圣经》真理，以致我能向别人传达。",
+      "当别人有困难，我往往可以带领他在《圣经》里找到最好的解决。",
+      "靠学习或经验，我发觉神有一些重要的策略和方法，来发展他的国度。",
+      "别人在他们痛苦及困难中会来找我之后告诉我说，他们得到了帮助、释放或医治。",
+      "我可以相当有把握地判断一个人是受邪灵搅扰。",
+      "当我受到感动，要奉献支持圣工，我通常能找到我需要的金钱。",
+      "我喜欢做刻板、固定的工作，而使到别人的事奉更有果效。",
+      "我喜欢去医院或老人院探访，而我觉得自己在这种事工上，做得蛮好。",
+      "其他种族或文化的人受我吸引，而我们双方来往得很融洽。",
+      "非基督徒觉得和我相处蛮自然，则我也积极影响他们开展对基督的信仰。",
+      "客人来我们家，他们会说好像宾至如归一样。",
+      "人家告诉我，说我有信心做成他们都认为不可能的事。",
+      "当我订目标时，别人好像很容易接纳。",
+      "我能够为一群人作有效率的计划，来达成大家的目标。",
+      "神好像经常用我的生命来成就不可能有的事。",
+      "人家告诉我，说因为我的服事，在感情困难上，神医治了他们。",
+      "我能用我从来没有学过的语言向神倾谈。",
+      "我祈求希望别人说方言时，我能作翻译。",
+      "我不是贫困，但我能和贫困的人认同。",
+      "由于我是单身，我很高兴我有更多时间事奉神。",
+      "花时间作代祷是我最喜欢的。",
+      "人家发觉有人可能受邪灵困扰，他们会来找我。",
+      "人家告诉我，说我喜欢作重复的事，并且做得特别好。",
+      "我有时强烈感受到，神对一个场合有重要的信息要传达。",
+      "我帮助别的信徒，带领他们在《圣经》里找到适切的经文，并且带他们一同祈祷。",
+      "我觉得我向别人解释《圣经》真理，不单能够带出知识增长，更能改变别人的态度、价值观和行为。",
+      "人家告诉我，说我对《圣经》真理有特别的领受，并且能够应用在众人的需要上。",
+      "我落不少功夫来研读，为的是学习新的《圣经》真理。",
+      "我有一个愿望，要有果效地辅导迷茫的、犯罪的和受毒品捆绑的人。",
+      "我能分辨出一个人的教导，是出自神，出自撒但，或出自人意。",
+      "我全然确信神会供应我一切需要，所以我持之以恒的大大奉献。",
+      "当我做幕后工作而别人得到帮助，我就心满意足。",
+      "别人看到不幸，会找我去帮手。",
+      "我愿意离开舒适的环境，如果我能够更有果效地向更多人分享基督。",
+      "别人不像我一样向未信主的人见证耶稣，我会觉得气恼。",
+      "人家告诉我，说我好客。",
+      "有时我很确实神有特别的旨意，来扩展他的事工——就算别人不能肯定。",
+      "当我加入一个团队，其他人自然退缩，并且期待我带领。",
+      "我不用太多说服，也能给人指示来完成一件工作。",
+      "人家告诉我，说我成了神的工具，带出生命及环境上超然的改变。",
+      "我为病人祷告，医治实实在在出现。",
+      "当我在公开场合说方言，我期待有翻译。",
+      "我翻译方言，别人得到祝福。",
+      "人家告诉我，说我牺牲太大来作事奉。",
+      "我单身，但我控制性的困扰不太难。",
+      "人家告诉我，说我为他们的祷告得到实实在在的应允。",
+      "我祷告，别人即时在污鬼邪灵捆扰中得释放。",
+      "我宁可积极采取行动，好过坐下来谈话、阅读、或听别人讲话。",
+      "我有时清楚确实知道神在事奉上要作的是什么。",
+      "人家告诉我，说我把他们重新带回基督大家庭。",
+      "研读《圣经》，把自己的见解与别人分享，是很满足的。",
+      "当要作重要的决定，我感受到神奇异的同在，并且得到信心。",
+      "我能够凭阅读和观察，自己发现新真理。",
+      "我说服别人在《圣经》中找良方，来解决他们的困难和痛苦。",
+      "我有分辨出一个人说方言，是真是假。",
+      "我甘愿过一个比较低水平的生活，以致造益神的工作。",
+      "当我服事神的时候，我根本不理谁得称赞。",
+      "我乐意和一个孤寂的，好像坐牢的人，共度时间。",
+      "比起别人，我有一个强烈的愿望，要别的地方的人归主。",
+      "我对非信徒特别好感，希望能赢取他们信主。",
+      "我愿意几时有需要，几时我的家就打开，来款待神的仆人。",
+      "人家告诉我，说我有特别的异象；这点我同意。",
+      "由我负责时，事情就进行的顺利。",
+      "我享受在教会中担任一个特别的责任，而且看到它成功。",
+      "奉主的名，我叫瞎眼的重见光明。",
+      "当我为病人祷告，一就是我自己，一就是对方，总会觉得热和震颤。",
+      "当我说方言，我相信是建立主的身体。",
+      "我翻译方言时，好像是神直接传达讯息给我们。",
+      "穷人家接纳我，因为我选择过他们的生活水平。",
+      "我没有困难认同保罗独身的心愿。",
+      "当我祷告时，神经常向我说话。我认识他的声音。",
+      "我奉主名赶鬼。",
+      "人家要我做的，看来是琐事，我也乐意接受。"
+    ];
+
+    const OPTIONS = [
+      { label: '许多', value: 3 },
+      { label: '有些', value: 2 },
+      { label: '少少', value: 1 },
+      { label: '没有', value: 0 }
+    ];
+
+    const STORAGE_KEY = 'spiritual_gifts_answers';
+    const REFLECTION_KEY = 'spiritual_gifts_reflections';
+
+    // Build questions array
+    const questions = QUESTION_TEXTS.map((text, index) => {
+      const id = index + 1;
+      const catIndex = (id - 1) % 25;
+      return { id, text, category: CATEGORIES[catIndex] };
+    });
+
+    // ===================== VUE APP =====================
+    const { createApp, ref, computed, watch, onMounted, nextTick } = Vue;
+
+    const app = createApp({
+      setup() {
+        const answers = ref({});
+        const showRestoreDialog = ref(false);
+        const showJumpModal = ref(false);
+        const focusedQuestion = ref(null);
+        const reflection1 = ref('');
+        const reflection2 = ref('');
+        const reflection3 = ref('');
+        const reflection4 = ref('');
+        let radarChartInstance = null;
+
+        // Restore from localStorage
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (Object.keys(parsed).length > 0) {
+              answers.value = parsed;
+              showRestoreDialog.value = true;
+            }
+          } catch (e) {}
+        }
+
+        const savedReflections = localStorage.getItem(REFLECTION_KEY);
+        if (savedReflections) {
+          try {
+            const r = JSON.parse(savedReflections);
+            reflection1.value = r.r1 || '';
+            reflection2.value = r.r2 || '';
+            reflection3.value = r.r3 || '';
+            reflection4.value = r.r4 || '';
+          } catch (e) {}
+        }
+
+        const savedCount = computed(() => Object.keys(answers.value).length);
+
+        const answeredCount = computed(() => Object.keys(answers.value).length);
+
+        const progressPercent = computed(() => (answeredCount.value / 125) * 100);
+
+        const allAnswered = computed(() => answeredCount.value === 125);
+
+        function restoreAnswers() {
+          showRestoreDialog.value = false;
+        }
+
+        function clearAndStart() {
+          answers.value = {};
+          reflection1.value = '';
+          reflection2.value = '';
+          reflection3.value = '';
+          reflection4.value = '';
+          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem(REFLECTION_KEY);
+          showRestoreDialog.value = false;
+        }
+
+        function setAnswer(id, value) {
+          answers.value = { ...answers.value, [id]: value };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(answers.value));
+        }
+
+        function jumpTo(id) {
+          const el = document.getElementById('q' + id);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            focusedQuestion.value = id;
+            setTimeout(() => { focusedQuestion.value = null; }, 1500);
+          }
+        }
+
+        function getDotClass(id) {
+          if (answers.value[id] !== undefined) return 'bg-sky-500 text-white hover:bg-sky-600';
+          return 'bg-slate-100 text-slate-400 hover:bg-slate-200';
+        }
+
+        function getCategoryScore(catKey) {
+          let score = 0;
+          for (let i = 0; i < 5; i++) {
+            const qid = CATEGORIES.findIndex(c => c.key === catKey) + 1 + i * 25;
+            if (answers.value[qid] !== undefined) {
+              score += answers.value[qid];
+            }
+          }
+          return score;
+        }
+
+        function getCategoryAnswered(catKey) {
+          let count = 0;
+          for (let i = 0; i < 5; i++) {
+            const qid = CATEGORIES.findIndex(c => c.key === catKey) + 1 + i * 25;
+            if (answers.value[qid] !== undefined) count++;
+          }
+          return count;
+        }
+
+        const sortedGifts = computed(() => {
+          return CATEGORIES.map(cat => ({
+            ...cat,
+            score: getCategoryScore(cat.key),
+            answered: getCategoryAnswered(cat.key)
+          }));
+        });
+
+        const topGifts = computed(() => {
+          return [...sortedGifts.value].sort((a, b) => b.score - a.score);
+        });
+
+        // Watch for all answered to render chart
+        watch(allAnswered, async (val) => {
+          if (val) {
+            await nextTick();
+            setTimeout(() => {
+              renderRadarChart();
+            }, 600);
+          }
+        });
+
+        // Also watch individual answers to update chart when results are visible
+        watch(answers, async () => {
+          if (allAnswered.value) {
+            await nextTick();
+            renderRadarChart();
+          }
+        }, { deep: true });
+
+        // Watch reflections for save
+        watch([reflection1, reflection2, reflection3, reflection4], () => {
+          localStorage.setItem(REFLECTION_KEY, JSON.stringify({
+            r1: reflection1.value,
+            r2: reflection2.value,
+            r3: reflection3.value,
+            r4: reflection4.value
+          }));
+        });
+
+        function renderRadarChart() {
+          const canvas = document.getElementById('radarChart');
+          if (!canvas) return;
+
+          if (radarChartInstance) {
+            radarChartInstance.destroy();
+          }
+
+          const ctx = canvas.getContext('2d');
+
+          const labels = CATEGORIES.map(c => c.name);
+          const data = CATEGORIES.map(c => getCategoryScore(c.key));
+
+          radarChartInstance = new Chart(ctx, {
+            type: 'radar',
+            data: {
+              labels: labels,
+              datasets: [{
+                label: '恩赐得分',
+                data: data,
+                backgroundColor: 'rgba(14, 165, 233, 0.15)',
+                borderColor: 'rgba(14, 165, 233, 0.8)',
+                borderWidth: 2,
+                pointBackgroundColor: 'rgba(14, 165, 233, 0.8)',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 1,
+                pointRadius: 4,
+                pointHoverRadius: 6
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              plugins: {
+                legend: { display: false }
+              },
+              scales: {
+                r: {
+                  beginAtZero: true,
+                  max: 15,
+                  ticks: {
+                    stepSize: 3,
+                    font: { size: 10 },
+                    backdropColor: 'transparent'
+                  },
+                  grid: {
+                    color: 'rgba(148, 163, 184, 0.2)'
+                  },
+                  angleLines: {
+                    color: 'rgba(148, 163, 184, 0.2)'
+                  },
+                  pointLabels: {
+                    font: { size: 11, family: '-apple-system, sans-serif' },
+                    color: '#475569'
+                  }
+                }
+              }
+            }
+          });
+        }
+
+        function resetAll() {
+          if (confirm('确定要重置所有答案吗？此操作不可撤销。')) {
+            answers.value = {};
+            reflection1.value = '';
+            reflection2.value = '';
+            reflection3.value = '';
+            reflection4.value = '';
+            localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(REFLECTION_KEY);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        }
+
+        return {
+          questions,
+          options: OPTIONS,
+          answers,
+          showRestoreDialog,
+          showJumpModal,
+          focusedQuestion,
+          reflection1, reflection2, reflection3, reflection4,
+          savedCount,
+          answeredCount,
+          progressPercent,
+          allAnswered,
+          sortedGifts,
+          topGifts,
+          restoreAnswers,
+          clearAndStart,
+          setAnswer,
+          jumpTo,
+          getDotClass,
+          resetAll
+        };
+      }
+    });
+
+    app.mount('#app');
+  </script>
+
+</body>
+</html>
