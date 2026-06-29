@@ -95,6 +95,63 @@
       </div>
     </transition>
 
+    <!-- ========== SCORE PREVIEW MODAL ========== -->
+    <transition name="fade">
+      <div v-if="showScorePreview" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-overlay" @click.self="showScorePreview = false">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col scale-in" @click.stop>
+          <!-- header -->
+          <div class="flex items-center justify-between p-5 border-b border-slate-100">
+            <h3 class="text-lg font-bold text-sky-800 flex items-center gap-2">
+              📊 实时得分预览
+              <span class="text-sm font-normal text-slate-400">({{ answeredCount }}/125 已答)</span>
+            </h3>
+            <button @click="showScorePreview = false" class="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
+          </div>
+          <!-- body -->
+          <div class="flex-1 overflow-y-auto p-5 space-y-2">
+            <div v-for="item in liveScores" :key="item.key"
+              class="flex items-center gap-3 py-2 px-3 rounded-xl transition"
+              :class="item.answered === 5 ? 'bg-sky-50' : 'bg-slate-50'">
+              <!-- rank badge -->
+              <div class="w-6 text-center flex-shrink-0">
+                <span v-if="item.rank <= 3" class="text-sm">{{ ['🥇','🥈','🥉'][item.rank-1] }}</span>
+                <span v-else-if="item.rank <= 6" class="text-xs font-bold text-amber-500">#{{ item.rank }}</span>
+                <span v-else class="text-xs text-slate-300">{{ item.rank }}</span>
+              </div>
+              <!-- category name -->
+              <div class="w-16 text-sm font-medium text-slate-600 flex-shrink-0">{{ item.key }}.{{ item.name }}</div>
+              <!-- progress dots -->
+              <div class="flex gap-1 flex-shrink-0">
+                <div v-for="i in 5" :key="i" class="w-2.5 h-2.5 rounded-full"
+                  :class="i <= getAnsweredInCategory(item.key) ? 'bg-sky-400' : 'bg-slate-200'"></div>
+              </div>
+              <!-- score bar -->
+              <div class="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden min-w-[40px]">
+                <div class="h-full rounded-full transition-all duration-300"
+                  :class="item.score >= 12 ? 'bg-gradient-to-r from-sky-400 to-sky-500' : item.score >= 8 ? 'bg-gradient-to-r from-sky-300 to-sky-400' : 'bg-gradient-to-r from-sky-200 to-sky-300'"
+                  :style="{ width: Math.max(item.score/15*100, 4) + '%' }"></div>
+              </div>
+              <!-- score number -->
+              <div class="w-10 text-right text-sm font-bold flex-shrink-0"
+                :class="item.answered === 5 ? 'text-sky-600' : 'text-slate-300'">
+                {{ item.score }}<span class="text-xs text-slate-300">/15</span>
+              </div>
+            </div>
+            <!-- empty state -->
+            <div v-if="answeredCount === 0" class="text-center py-12 text-slate-400">
+              <div class="text-4xl mb-3">📝</div>
+              <p>还没有作答任何题目</p>
+              <p class="text-sm mt-1">选择答案后，这里会实时更新得分</p>
+            </div>
+          </div>
+          <!-- footer -->
+          <div class="p-4 border-t border-slate-100 text-center text-xs text-slate-400">
+            已完成的类别显示为 <span class="inline-block w-2.5 h-2.5 rounded-full bg-sky-400 align-middle"></span> 蓝色圆点
+          </div>
+        </div>
+      </div>
+    </transition>
+
     <!-- ========== MAIN LAYOUT ========== -->
     <div class="flex">
 
@@ -140,10 +197,13 @@
           <div class="max-w-3xl mx-auto px-6 py-3">
             <div class="flex items-center justify-between text-sm">
               <span class="text-slate-500 font-medium">完成进度</span>
-              <div class="flex items-center gap-3">
+              <div class="flex items-center gap-2">
                 <span class="text-sky-600 font-bold">{{ answeredCount }} / 125</span>
+                <button @click="showScorePreview = true" class="text-xs px-3 py-1.5 rounded-lg bg-sky-50 text-sky-600 hover:bg-sky-100 hover:text-sky-700 transition-all font-medium">
+                  📊 得分
+                </button>
                 <button @click="resetAll" class="text-xs px-3 py-1.5 rounded-lg bg-slate-100 text-slate-500 hover:bg-red-50 hover:text-red-500 hover:ring-1 hover:ring-red-200 transition-all font-medium">
-                  ↺ 重置
+                  ↺
                 </button>
               </div>
             </div>
@@ -504,6 +564,7 @@
         const answers = ref({});
         const showRestoreDialog = ref(false);
         const showJumpModal = ref(false);
+        const showScorePreview = ref(false);
         const focusedQuestion = ref(null);
         const reflection1 = ref('');
         const reflection2 = ref('');
@@ -571,6 +632,15 @@
           }
         }
 
+        function getAnsweredInCategory(catKey) {
+          let count = 0;
+          for (let i = 0; i < 5; i++) {
+            const qid = CATEGORIES.findIndex(c => c.key === catKey) + 1 + i * 25;
+            if (answers.value[qid] !== undefined) count++;
+          }
+          return count;
+        }
+
         function getDotClass(id) {
           if (answers.value[id] !== undefined) return 'bg-sky-500 text-white hover:bg-sky-600';
           return 'bg-slate-100 text-slate-400 hover:bg-slate-200';
@@ -606,6 +676,12 @@
 
         const topGifts = computed(() => {
           return [...sortedGifts.value].sort((a, b) => b.score - a.score);
+        });
+
+        const liveScores = computed(() => {
+          return [...sortedGifts.value]
+            .sort((a, b) => b.score - a.score)
+            .map((item, index) => ({ ...item, rank: index + 1 }));
         });
 
         // Watch for all answered to render chart
@@ -716,6 +792,7 @@
           answers,
           showRestoreDialog,
           showJumpModal,
+          showScorePreview,
           focusedQuestion,
           reflection1, reflection2, reflection3, reflection4,
           savedCount,
@@ -724,6 +801,8 @@
           allAnswered,
           sortedGifts,
           topGifts,
+          liveScores,
+          getAnsweredInCategory,
           restoreAnswers,
           clearAndStart,
           setAnswer,
