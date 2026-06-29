@@ -356,7 +356,7 @@
               :class="{ 'ring-2 ring-primary-300 shadow-md': focusedQuestion === q.id }">
               <div class="flex items-start gap-4">
                 <!-- 颜色条 -->
-                <div class="flex-shrink-0 w-1 self-stretch rounded-full mt-3 mb-3" :class="getCategoryColor(q.id).bar"></div>
+                <div class="flex-shrink-0 w-1 self-stretch rounded-full mt-3 mb-3" :class="(getCategoryColor(q.id) || {}).bar || ''"></div>
                 <div class="flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center text-sm font-bold transition-all duration-300"
                   :class="answers[q.id] !== undefined ? 'bg-primary-500 text-white shadow-sm shadow-primary-200' : 'bg-neutral-100 text-neutral-400'">
                   {{ q.id }}
@@ -587,7 +587,9 @@
       { bar: 'bg-cyan-400', bg: 'bg-cyan-50', border: 'border-cyan-200' },
     ];
     function getCategoryColor(id) {
-      return CATEGORY_COLORS[Math.floor((id - 1) / 5) % 5];
+      const colors = CATEGORY_COLORS || [];
+      const idx = Math.max(0, Math.min(colors.length - 1, Math.floor(((id || 1) - 1) / 5) % 5));
+      return colors[idx] || { bar: "bg-primary-400", bg: "bg-primary-50", border: "border-primary-200" };
     }
     
     const CATEGORIES = [
@@ -955,22 +957,20 @@
             await nextTick();
             // Score animation
             CATEGORIES.forEach(cat => {
-              const target = getCategoryScore(cat.key);
-              scoreTargets.value[cat.key] = target;
+              scoreTargets.value[cat.key] = getCategoryScore(cat.key);
               animatedScores.value[cat.key] = 0;
             });
             animatedScores.value = { ...animatedScores.value };
             setTimeout(() => {
               CATEGORIES.forEach(cat => {
-                const target = scoreTargets.value[cat.key];
-                animateScore(cat.key, target, 1000);
+                animateScore(cat.key, scoreTargets.value[cat.key], 1000);
               });
             }, 400);
             setTimeout(() => {
               renderRadarChart();
             }, 1200);
           }
-        });
+        }, { immediate: true });
 
         // Also watch individual answers to update chart when results are visible
         watch(answers, async () => {
@@ -1143,6 +1143,7 @@
           topGifts,
           liveScores,
           getAnsweredInCategory,
+          animatedScores,
           getCategoryColor,
           expandedDef,
           giftDefinitionsWithScores,
